@@ -1,0 +1,31 @@
+<launch>
+    <!-- Play rosbag files -->
+    <!-- <include file="$(find robot_setup_tf)/launch/rosbag_play_slam.launch" /> -->
+    
+    <!-- Factor graph: GTSAM -->
+    <arg name="project" default="gtsam_test"/>
+
+    <!-- 1. gtsam with /odometry/filtered -->
+    <node pkg="$(arg project)" type="$(arg project)_factorGraph"   name="$(arg project)_factorGraph"    output="screen" 	respawn="true"/>
+
+    <!-- 2. gtsam with pagslam odometry -->
+    <node pkg="$(arg project)" type="$(arg project)_factorGraph2"   name="$(arg project)_factorGraph2"    output="screen" 	respawn="true"/>
+
+    <!-- GPS -->
+    <!-- <include file="$(find gps)/launch/gps_localization.launch" /> -->
+    <include file="$(find gps)/launch/gps_localization_.launch" />
+
+    <!-- P-AgSLAM -->
+    <include file="$(find pagslam)/launch/baseline.launch" />
+
+    <!-- Mapviz -->
+    <!-- <include file="$(find mapviz)/launch/mapviz.launch" /> -->
+    
+    <!-- rviz -->
+    <!-- <arg name="rviz" value="/home/kimkt0408/catkin_ws/src/pagslam/pagslam_baseline.rviz" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz)" /> -->
+
+    <arg name="rviz" value="/home/kimkt0408/rviz/gps_localization_.rviz" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz)" />
+
+</launch>
