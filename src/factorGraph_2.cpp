@@ -324,11 +324,9 @@ void GtsamOptimizer::odometryCallback(const nav_msgs::Odometry::ConstPtr& odomMs
         if (boolCloud_){
             addCloud();
         }
-        cout << "#############################" << endl;
         graphUpdate();
         addGPSFactor();
         optimize();
-        cout << "-----------------------------" << endl;
     }
 }
 
@@ -449,12 +447,9 @@ void GtsamOptimizer::optimize() {
         publishCloudMap();
     }
 
-
-    cout << "!!!!!" << endl;
     if (vec_odom_.size()){
         trajectoryVisualization(vec_odom_);
     }
-    cout << "?????" << endl;
 
     gtSAMgraph.resize(0);
     initialEstimate.clear();
@@ -641,8 +636,7 @@ void GtsamOptimizer::trajectoryVisualization(const std::vector<std::array<float,
     line_strip.color.g = 0.0;
     line_strip.color.b = 1.0;
     line_strip.color.a = 1.0;
-
-    cout << "~~~~~~" << endl;    
+  
     for (auto odom : vec_odom)
     {
         // Between odom line strips
@@ -653,7 +647,6 @@ void GtsamOptimizer::trajectoryVisualization(const std::vector<std::array<float,
         points.points.push_back(pt);
         line_strip.points.push_back(pt);
     }
-    cout << "******" << endl;
     tMarkerArray.markers.push_back(points);
     tMarkerArray.markers.push_back(line_strip);
 

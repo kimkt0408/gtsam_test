@@ -16,6 +16,7 @@ void poseStampedCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 
     // Broadcasting the transform from "base_link" to "base_link2"
     // br.sendTransform(tf::StampedTransform(transform, msg->header.stamp, "map", "base_link2"));
+    // br.sendTransform(tf::StampedTransform(transform, ros::Time(0), "map", "base_link2"));
     br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "base_link2"));
 }
 
