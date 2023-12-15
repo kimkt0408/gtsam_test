@@ -728,7 +728,7 @@ void GtsamOptimizer::mapCloudVisualization(const std::vector<CloudT::Ptr> vec_ma
         marker_array.markers.push_back(marker);
     }
 
-    mapCloudPub_.publish(marker_array);\
+    mapCloudPub_.publish(marker_array);
 }
 
 

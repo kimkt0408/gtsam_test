@@ -5,14 +5,14 @@
     <!-- Factor graph: GTSAM -->
     <arg name="project" default="gtsam_test"/>
 
-    <!-- 1. gtsam with /odometry/filtered -->
+    <!-- 1. gtsam with pagslam odometry -->
     <node pkg="$(arg project)" type="$(arg project)_factorGraph"   name="$(arg project)_factorGraph"    output="screen" 	respawn="true"/>
 
-    <!-- 2. gtsam with pagslam odometry -->
+    <!-- 2. gtsam with /odometry/filtered -->
     <node pkg="$(arg project)" type="$(arg project)_factorGraph2"   name="$(arg project)_factorGraph2"    output="screen" 	respawn="true"/>
 
     <!-- 3. new TF -->
-    <node pkg="$(arg project)" type="$(arg project)_newTF"   name="$(arg project)_newTF"    output="screen" 	respawn="true"/>
+    <!-- <node pkg="$(arg project)" type="$(arg project)_newTF"   name="$(arg project)_newTF"    output="screen" 	respawn="true"/> -->
 
     <!-- GPS -->
     <!-- <include file="$(find gps)/launch/gps_localization.launch" /> -->

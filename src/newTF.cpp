@@ -26,7 +26,7 @@ int main(int argc, char** argv){
     ros::NodeHandle node;
     
     // Subscribe to the PoseStamped topic
-    ros::Subscriber sub = node.subscribe("gtsam/optimized_pose_2", 10, &poseStampedCallback);
+    ros::Subscriber sub = node.subscribe("gtsam/optimized_pose_", 10, &poseStampedCallback);
 
     ros::spin();
     return 0;
