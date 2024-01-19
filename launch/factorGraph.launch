@@ -9,7 +9,7 @@
     <node pkg="$(arg project)" type="$(arg project)_factorGraph"   name="$(arg project)_factorGraph"    output="screen" 	respawn="true"/>
 
     <!-- 2. gtsam with /odometry/filtered -->
-    <node pkg="$(arg project)" type="$(arg project)_factorGraph2"   name="$(arg project)_factorGraph2"    output="screen" 	respawn="true"/>
+    <!-- <node pkg="$(arg project)" type="$(arg project)_factorGraph2"   name="$(arg project)_factorGraph2"    output="screen" 	respawn="true"/> -->
 
     <!-- 3. new TF -->
     <!-- <node pkg="$(arg project)" type="$(arg project)_newTF"   name="$(arg project)_newTF"    output="screen" 	respawn="true"/> -->

@@ -42,6 +42,8 @@
 #include <pcl_ros/transforms.h>
 #include <pcl/common/io.h>
 
+#include <chrono>
+
 using namespace std;
 using namespace boost;
 using namespace gtsam;
@@ -154,7 +156,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     // nh_.param<string>("odom_topic", odom_topic_,  "odometry/filtered");
     nh_.param<string>("odom_topic", odom_topic_, "pagslam/debug/ref_frame_pagslam_pose_");
 
-    nh_.param<string>("gps_topic", gps_topic_, "odometry/gps");
+    nh_.param<string>("gps_topic", gps_topic_, "odometry/gps_");
     nh_.param<string>("v_cloud_topic", v_cloud_topic_, "ns2/velodyne_points");
     
     nh_.param<string>("v_lidar_frame_id", v_lidar_frame_id_, "velodyne2");
@@ -167,13 +169,22 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     
     nh_.param<float>("new_odom_distance", newOdomDist_, 0.1);
 
+    // nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
+    // nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
+    
+    // nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 2e-1);  // 5e-2 / 2e-2
+    // nh_.param<float>("small_pose_covariance_threshold", smallPoseCovThreshold_, 1e-4);  // 1e-2 / 4e-2 / 2e-2, 2023-09-14
+    
+    // gpsNoiseThreshold_ = smallGpsNoiseThreshold_; 
+    // poseCovThreshold_ = largePoseCovThreshold_; 
+
     nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
     nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
     
     nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 2e-1);  // 5e-2 / 2e-2
     nh_.param<float>("small_pose_covariance_threshold", smallPoseCovThreshold_, 1e-4);  // 1e-2 / 4e-2 / 2e-2, 2023-09-14
     
-    gpsNoiseThreshold_ = smallGpsNoiseThreshold_; 
+    gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
     poseCovThreshold_ = largePoseCovThreshold_; 
 
     priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-8, 1e-8, 1e-8, 1e-6, 1e-6, 1e-6).finished()); // rad,rad,rad,m, m, m
@@ -808,13 +819,60 @@ bool GtsamOptimizer::transformFrame(const string source_frame, const string targ
 }
 
 
+// int main(int argc, char** argv) {
+//     ros::init(argc, argv, "gtsam_optimizer");
+//     ros::NodeHandle nh;
+
+//     double total_latency = 0.0;
+//     int count = 0;
+
+//     auto input_time = std::chrono::high_resolution_clock::now();
+
+//     GtsamOptimizer optimizer(nh);
+
+//     auto output_time = std::chrono::high_resolution_clock::now();
+//     std::chrono::duration<double, std::milli> latency = output_time - input_time;
+//     std::cout << "2 System latency: " << latency.count() << " ms\n";
+
+//     total_latency += latency.count();
+//     count++;
+    
+//     ros::spin();
+
+//     double avg_latency = total_latency / count;
+//     std::cout << "2 Average system latency: " << avg_latency << " " << count <<" ms\n";
+
+//     return 0;
+// }
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "gtsam_optimizer");
     ros::NodeHandle nh;
 
+    double total_latency = 0.0;
+    int count = 0;
+
     GtsamOptimizer optimizer(nh);
 
-    ros::spin();
+    ros::Rate rate(10); // 10 Hz, or adjust as needed
+    while (ros::ok()) {
+        auto input_time = std::chrono::high_resolution_clock::now();
+
+        // Perform operations you want to measure here.
+        // For instance, if you want to measure the time taken by a specific method in GtsamOptimizer, call it here.
+        
+        ros::spinOnce(); // Handle callbacks
+
+        auto output_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> latency = output_time - input_time;
+        total_latency += latency.count();
+        count++;
+
+        rate.sleep(); // Maintain loop rate
+    }
+
+    double avg_latency = total_latency / count;
+    std::cout << "2 Average system latency: " << avg_latency << " " << count << " ms\n";
 
     return 0;
 }
