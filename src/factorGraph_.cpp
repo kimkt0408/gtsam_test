@@ -178,6 +178,8 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     // gpsNoiseThreshold_ = smallGpsNoiseThreshold_; 
     // poseCovThreshold_ = largePoseCovThreshold_; 
 
+
+    // // (1) multiple/mid
     nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
     nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
     
@@ -187,10 +189,26 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
     poseCovThreshold_ = largePoseCovThreshold_; 
 
-    priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-8, 1e-8, 1e-8, 1e-6, 1e-6, 1e-6).finished()); // rad,rad,rad,m, m, m
+    priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-4, 1e-4, 1e-4, 1e-6, 1e-6, 1e-6).finished()); // rad,rad,rad,m, m, m
     odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
-    // odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-3, 1e-3, 1e-3, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
 
+
+    // (2) multiple/short
+    // nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
+    // nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
+    
+    // nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 2e-1);  // 5e-2 / 2e-2
+    // nh_.param<float>("small_pose_covariance_threshold", smallPoseCovThreshold_, 1e-4);  // 1e-2 / 4e-2 / 2e-2, 2023-09-14
+    
+    // gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
+    // poseCovThreshold_ = largePoseCovThreshold_; 
+
+    // priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-4, 1e-4, 1e-4, 1e-6, 1e-6, 1e-6).finished()); // rad,rad,rad,m, m, m
+    // odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
+    
+    // priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-8, 1e-8, 1e-8, 1e-6, 1e-6, 1e-6).finished()); // rad,rad,rad,m, m, m
+    // odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
+    
     
     // ROS subscribers
 
@@ -231,7 +249,8 @@ void GtsamOptimizer::originalOdometryCallback(const nav_msgs::Odometry::ConstPtr
 
 void GtsamOptimizer::odometryCallback(const nav_msgs::Odometry::ConstPtr& odomMsg) {   
     timeLaserInfoCur_ = odomMsg->header.stamp.toSec();
-    odomZInfoCur_ = odomMsg->pose.pose.orientation.z;
+    // odomZInfoCur_ = odomMsg->pose.pose.orientation.z;
+    odomZInfoCur_ = odomMsg->pose.pose.position.z;
 
     tf::Quaternion q(
         odomMsg->pose.pose.orientation.x,
@@ -424,8 +443,9 @@ void GtsamOptimizer::addGPSFactor() {
 
         float gps_x = thisGPS.pose.pose.position.x;
         float gps_y = thisGPS.pose.pose.position.y;
-        float gps_z = thisGPS.pose.pose.position.z;
-        // float gps_z = odomZInfoCur_;
+        
+        // float gps_z = thisGPS.pose.pose.position.z;  // (1) If you use z value of gps
+        float gps_z = odomZInfoCur_;                    // (2) If you use z value of odom
 
 
         // GPS not properly initialized (0,0,0)
@@ -565,7 +585,8 @@ void GtsamOptimizer::publishCloudMap() {
         vec_map_cloud_.push_back(tfm_v_cloud);
     }
     
-    mapCloudVisualization(vec_map_cloud_);
+    // Comment if visualization is not required
+    // mapCloudVisualization(vec_map_cloud_);
 }
 
 
