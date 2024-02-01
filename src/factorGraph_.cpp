@@ -179,7 +179,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     // poseCovThreshold_ = largePoseCovThreshold_; 
 
 
-    // // (1) multiple/mid
+    // (1) multiple/mid
     nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
     nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
     
@@ -193,7 +193,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
 
 
-    // (2) multiple/short
+    // // (2) multiple/short
     // nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
     // nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
     
@@ -444,8 +444,8 @@ void GtsamOptimizer::addGPSFactor() {
         float gps_x = thisGPS.pose.pose.position.x;
         float gps_y = thisGPS.pose.pose.position.y;
         
-        // float gps_z = thisGPS.pose.pose.position.z;  // (1) If you use z value of gps
-        float gps_z = odomZInfoCur_;                    // (2) If you use z value of odom
+        float gps_z = thisGPS.pose.pose.position.z;  // (1) If you use z value of gps
+        // float gps_z = odomZInfoCur_;                    // (2) If you use z value of odom
 
 
         // GPS not properly initialized (0,0,0)
