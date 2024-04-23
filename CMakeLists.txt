@@ -189,6 +189,7 @@ link_directories(
 
 add_executable(${PROJECT_NAME}_factorGraph src/factorGraph_.cpp)
 add_executable(${PROJECT_NAME}_factorGraph2 src/factorGraph_2.cpp)
+add_executable(${PROJECT_NAME}_factorGraph_kissicp src/factorGraph_kissicp.cpp)
 add_executable(${PROJECT_NAME}_newTF src/newTF.cpp)
 
 # add_executable(${PROJECT_NAME}_factorGraph src/factorGraph.cpp)
@@ -199,6 +200,10 @@ target_link_libraries(${PROJECT_NAME}_factorGraph ${catkin_LIBRARIES} ${PCL_LIBR
 add_dependencies(${PROJECT_NAME}_factorGraph2 ${catkin_EXPORTED_TARGETS})
 # add_dependencies(${PROJECT_NAME}_factorGraph ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_factorGraph2 ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam)
+
+add_dependencies(${PROJECT_NAME}_factorGraph_kissicp ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME}_factorGraph ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(${PROJECT_NAME}_factorGraph_kissicp ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam)
 
 add_dependencies(${PROJECT_NAME}_newTF ${catkin_EXPORTED_TARGETS})
 # add_dependencies(${PROJECT_NAME}_factorGraph ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
