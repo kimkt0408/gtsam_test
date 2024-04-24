@@ -154,7 +154,8 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     // (1) ROSTOPIC & FRAME_ID SETTING
     nh_.param<string>("original_odom_topic", original_odom_topic_, "odometry/filtered");
     // nh_.param<string>("odom_topic", odom_topic_,  "odometry/filtered");
-    nh_.param<string>("odom_topic", odom_topic_, "pagslam/debug/ref_frame_pagslam_pose_");
+    // nh_.param<string>("odom_topic", odom_topic_, "pagslam/debug/ref_frame_pagslam_pose_");
+    nh_.param<string>("odom_topic", odom_topic_, "kiss/odometry");
 
     nh_.param<string>("gps_topic", gps_topic_, "odometry/gps_");
     nh_.param<string>("v_cloud_topic", v_cloud_topic_, "ns2/velodyne_points");
@@ -165,7 +166,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
 
     // (2) PARAMETERS
     nh_.param<bool>("bool_cloud_publisher", boolCloud_, true);
-    nh_.param<bool>("debug_mode", debugMode_, false);
+    nh_.param<bool>("debug_mode", debugMode_, true);
     
     nh_.param<float>("new_odom_distance", newOdomDist_, 0.1);
 
@@ -293,8 +294,8 @@ void GtsamOptimizer::odometryCallback(const nav_msgs::Odometry::ConstPtr& odomMs
         Eigen::Matrix4d T_combined = T_prev_optimized * T_delta;
         
         if (debugMode_){
-            cout << "!!!" << prev_optimized_odom_[0] << " " << prev_optimized_odom_[1] << " " << prev_optimized_odom_[2] << " " << 
-            prev_optimized_odom_[3] << " " << prev_optimized_odom_[4] << " " << prev_optimized_odom_[5] << " " << endl;  
+            cout << "!!!" << " x: " << prev_optimized_odom_[3] << ", y: " << prev_optimized_odom_[4] << ", z: " << prev_optimized_odom_[5] << ", r: " << 
+            prev_optimized_odom_[0] << ", p: " << prev_optimized_odom_[1] << ", y: " << prev_optimized_odom_[2] << endl;  
         }
 
         // Extract the 3x3 rotation matrix from T_combined

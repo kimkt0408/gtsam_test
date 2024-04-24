@@ -1,7 +1,7 @@
 <launch>
     <!-- Play rosbag files -->
     <!-- <include file="$(find robot_setup_tf)/launch/rosbag_play_slam.launch" /> -->
-    <include file="$(find pagslam)/launch/rosbag_play.launch" />
+    <!-- <include file="$(find pagslam)/launch/rosbag_play.launch" /> -->
     
     <!-- Factor graph: GTSAM -->
     <arg name="project" default="gtsam_test"/>
@@ -20,7 +20,8 @@
 
     <!-- GPS -->
     <!-- <include file="$(find gps)/launch/gps_localization.launch" /> -->
-    <include file="$(find gps)/launch/gps_localization_.launch" />
+    <!-- <include file="$(find gps)/launch/gps_localization_.launch" /> -->
+    <include file="$(find gps)/launch/gps_localization_kissicp.launch" />
 
     <!-- P-AgSLAM -->
     <!-- <include file="$(find pagslam)/launch/baseline.launch" /> -->
