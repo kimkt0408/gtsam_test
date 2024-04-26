@@ -41,6 +41,9 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
 #include <pcl/common/io.h>
+#include <pcl/point_cloud.h>
+#include <pcl/filters/voxel_grid.h>
+
 
 #include <chrono>
 
@@ -94,7 +97,8 @@ class GtsamOptimizer
         void odomMapFrameVisualization(const nav_msgs::Odometry& thisOdom);
         void mapCloudVisualization(const std::vector<CloudT::Ptr> vec_map_cloud);
         // visualization_msgs::MarkerArray mapCloudVisualization(const std::vector<CloudT::Ptr> vec_map_cloud);
-        
+        void downsamplePointCloudVector(std::vector<CloudT::Ptr>& vec_map_cloud);
+
         void printFactors();
         void addCloud();
         bool transformFrame(const string source_frame, const string target_frame, tf2::Transform& tf_sourceToTarget);
@@ -142,6 +146,11 @@ class GtsamOptimizer
         
         double timeLaserInfoCur_;
         double odomZInfoCur_;
+
+        int gtsam_interval_;
+        int gtsam_interval_threshold_;
+        float downsampling_size_;
+        int maxQueueSize_;
         
     public:
         explicit GtsamOptimizer(ros::NodeHandle nh);
@@ -168,7 +177,12 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     nh_.param<bool>("bool_cloud_publisher", boolCloud_, true);
     nh_.param<bool>("debug_mode", debugMode_, true);
     
-    nh_.param<float>("new_odom_distance", newOdomDist_, 0.1);
+
+    nh_.param<int>("max_queue_size", maxQueueSize_, 100);
+    nh_.param<float>("new_odom_distance", newOdomDist_, 0.5);
+    nh_.param<int>("gtsam_interval", gtsam_interval_, 60);
+    nh_.param<int>("gtsam_interval_threshold", gtsam_interval_threshold_, 3);
+    nh_.param<float>("downsampling_size", downsampling_size_, 0.1);
 
     // nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
     // nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
@@ -181,28 +195,28 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
 
 
     // (1) multiple/mid
-    nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
-    nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
+    // nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
+    // nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 4e-4);  // 4e-2 / 4e-4 / 2023-09-14
     
-    nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 2e-1);  // 5e-2 / 2e-2
-    nh_.param<float>("small_pose_covariance_threshold", smallPoseCovThreshold_, 1e-4);  // 1e-2 / 4e-2 / 2e-2, 2023-09-14
+    // nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 2e-1);  // 5e-2 / 2e-2
+    // nh_.param<float>("small_pose_covariance_threshold", smallPoseCovThreshold_, 1e-4);  // 1e-2 / 4e-2 / 2e-2, 2023-09-14
     
-    gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
-    poseCovThreshold_ = largePoseCovThreshold_; 
+    // gpsNoiseThreshold_ = smallGpsNoiseThreshold_; 
+    // poseCovThreshold_ = smallPoseCovThreshold_; 
 
     priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-4, 1e-4, 1e-4, 1e-6, 1e-6, 1e-6).finished()); // rad,rad,rad,m, m, m
     odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
 
 
     // // (2) multiple/short
-    // nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
-    // nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
+    nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 2e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
+    nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 4e-4);  // 4e-2 / 4e-4 / 2023-09-14
     
-    // nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 2e-1);  // 5e-2 / 2e-2
-    // nh_.param<float>("small_pose_covariance_threshold", smallPoseCovThreshold_, 1e-4);  // 1e-2 / 4e-2 / 2e-2, 2023-09-14
+    nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 9e-4);  // 5e-2 / 2e-2
+    nh_.param<float>("small_pose_covariance_threshold", smallPoseCovThreshold_, 2e-4);  // 1e-2 / 4e-2 / 2e-2, 2023-09-14
     
-    // gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
-    // poseCovThreshold_ = largePoseCovThreshold_; 
+    gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
+    poseCovThreshold_ = smallPoseCovThreshold_; 
 
     // priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-4, 1e-4, 1e-4, 1e-6, 1e-6, 1e-6).finished()); // rad,rad,rad,m, m, m
     // odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
@@ -220,7 +234,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
 
     // ROS publishers
     posePub_ = nh.advertise<geometry_msgs::PoseStamped>("gtsam/optimized_pose_", 10);
-    trajectoryPub_ = nh.advertise<visualization_msgs::MarkerArray>("gtsam/trajectory_", 10);
+    trajectoryPub_ = nh.advertise<visualization_msgs::MarkerArray>("gtsam/trajectory_", 100);
     mapCloudPub_ = nh.advertise<visualization_msgs::MarkerArray>("gtsam/mapCloud_", 10);
 
     // ROS publishers (convert rostopics to map frame)
@@ -229,8 +243,8 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     
     // Initialize iSAM with your desired parameters.
     ISAM2Params parameters;
-    parameters.relinearizeThreshold = 0.01;
-    parameters.relinearizeSkip = 1;
+    parameters.relinearizeThreshold = 0.01; // default: 0.01
+    parameters.relinearizeSkip = 1;         // default: 1    
     isam = ISAM2(parameters);  
 
     for (int i = 0; i < 6; ++i){
@@ -365,12 +379,17 @@ void GtsamOptimizer::odometryCallback(const nav_msgs::Odometry::ConstPtr& odomMs
 
 void GtsamOptimizer::vCloudCallback(const sensor_msgs::PointCloud2ConstPtr &vCloudMsg){
     vCloudQueue_.push(vCloudMsg);
-
+    if (vCloudQueue_.size() > maxQueueSize_){
+        vCloudQueue_.pop();
+    }
 }
 
 
 void GtsamOptimizer::gpsCallback(const nav_msgs::Odometry::ConstPtr& gpsMsg){
     gpsQueue_.push_back(*gpsMsg);
+    if (gpsQueue_.size() > maxQueueSize_){
+        gpsQueue_.pop_front();
+    }
     gpsMapFrameVisualization(*gpsMsg);
 }
 
@@ -409,10 +428,14 @@ void GtsamOptimizer::addGPSFactor() {
     
     cout << "Pose covariance before gtsam:" <<poseCovariance_(3,3) << " " << poseCovariance_(4,4) << "====" << poseCovThreshold_ << endl;
     
-    if (poseCovariance_(3,3) < poseCovThreshold_ && poseCovariance_(4,4) < poseCovThreshold_){            
+    // if (poseCovariance_(3,3) < poseCovThreshold_ && poseCovariance_(4,4) < poseCovThreshold_){            
+    //     return;
+    // }
+    
+    if (!(vec_odom_.size() % gtsam_interval_ > gtsam_interval_threshold_)){            
         return;
     }
-    
+
     while (!gpsQueue_.empty()) {
         nav_msgs::Odometry thisGPS = gpsQueue_.front();
         double gpsTime = thisGPS.header.stamp.toSec();
@@ -445,8 +468,8 @@ void GtsamOptimizer::addGPSFactor() {
         float gps_x = thisGPS.pose.pose.position.x;
         float gps_y = thisGPS.pose.pose.position.y;
         
-        float gps_z = thisGPS.pose.pose.position.z;  // (1) If you use z value of gps
-        // float gps_z = odomZInfoCur_;                    // (2) If you use z value of odom
+        // float gps_z = thisGPS.pose.pose.position.z;  // (1) If you use z value of gps
+        float gps_z = odomZInfoCur_;                    // (2) If you use z value of odom
 
 
         // GPS not properly initialized (0,0,0)
@@ -475,6 +498,7 @@ void GtsamOptimizer::optimize() {
 
     if (boolCloud_){
         vec_map_cloud_.clear();
+        vec_map_cloud_.shrink_to_fit(); // Free up memory held by the vector
 
         publishCloudMap();
     }
@@ -519,6 +543,7 @@ void GtsamOptimizer::publishCurrentPose() {
         vec_odom_.push_back(optimized_odom_);
         lastKey = key;
     }
+
 
     // poseStamped_.header.stamp = ros::Time::now();
     poseStamped_.header.stamp = ros::Time(0);
@@ -584,10 +609,30 @@ void GtsamOptimizer::publishCloudMap() {
         transformMapCloud(tf2_transform, v_cloud, tfm_v_cloud);
 
         vec_map_cloud_.push_back(tfm_v_cloud);
+
     }
     
+    // Downsample the point clouds
+    downsamplePointCloudVector(vec_map_cloud_);
+
     // Comment if visualization is not required
-    // mapCloudVisualization(vec_map_cloud_);
+    mapCloudVisualization(vec_map_cloud_);
+}
+
+void GtsamOptimizer::downsamplePointCloudVector(std::vector<CloudT::Ptr>& vec_map_cloud) {
+    // Define the voxel grid filter
+    pcl::VoxelGrid<PointT> voxel_filter;
+    voxel_filter.setLeafSize(downsampling_size_, downsampling_size_, downsampling_size_);  // Set the leaf size
+
+    for (auto& cloud : vec_map_cloud) {
+        CloudT::Ptr temp_cloud(new CloudT());
+        if (!cloud->empty()) {
+            // Apply the voxel grid filter to downsample the cloud
+            voxel_filter.setInputCloud(cloud);
+            voxel_filter.filter(*temp_cloud);
+            cloud.swap(temp_cloud);  // Use the downsampled cloud
+        }
+    }
 }
 
 
@@ -734,9 +779,9 @@ void GtsamOptimizer::mapCloudVisualization(const std::vector<CloudT::Ptr> vec_ma
         marker.type = visualization_msgs::Marker::SPHERE_LIST;
         marker.action = visualization_msgs::Marker::ADD;
         marker.ns = "point_cloud";
-        marker.scale.x = 0.005;
-        marker.scale.y = 0.005;
-        marker.scale.z = 0.005;
+        marker.scale.x = 0.01;
+        marker.scale.y = 0.01;
+        marker.scale.z = 0.01;
         marker.color.a = 1.0;
         marker.color.r = num_r;
         marker.color.g = num_g;
