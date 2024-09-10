@@ -165,7 +165,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
 
     // (2) PARAMETERS
     nh_.param<bool>("bool_cloud_publisher", boolCloud_, true);
-    nh_.param<bool>("debug_mode", debugMode_, false);
+    nh_.param<bool>("debug_mode", debugMode_, true);
     
     nh_.param<float>("new_odom_distance", newOdomDist_, 0.1);
 
@@ -180,17 +180,17 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
 
 
     // (1) multiple/mid
-    nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
-    nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
+    // nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
+    // nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
     
-    nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 2e-1);  // 5e-2 / 2e-2
-    nh_.param<float>("small_pose_covariance_threshold", smallPoseCovThreshold_, 1e-4);  // 1e-2 / 4e-2 / 2e-2, 2023-09-14
+    // nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 2e-1);  // 5e-2 / 2e-2
+    // nh_.param<float>("small_pose_covariance_threshold", smallPoseCovThreshold_, 1e-4);  // 1e-2 / 4e-2 / 2e-2, 2023-09-14
     
-    gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
-    poseCovThreshold_ = largePoseCovThreshold_; 
+    // gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
+    // poseCovThreshold_ = smallPoseCovThreshold_; 
 
-    priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-4, 1e-4, 1e-4, 1e-6, 1e-6, 1e-6).finished()); // rad,rad,rad,m, m, m
-    odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
+    // priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-4, 1e-4, 1e-4, 1e-6, 1e-6, 1e-6).finished()); // rad,rad,rad,m, m, m
+    // odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
 
 
     // // (2) multiple/short
@@ -209,7 +209,26 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     // priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-8, 1e-8, 1e-8, 1e-6, 1e-6, 1e-6).finished()); // rad,rad,rad,m, m, m
     // odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
     
+    // ACRE2024
+    // nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 8e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
+    nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 8e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
+    nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 2.5e-1);  // 4e-2 / 4e-4 / 2023-09-14 / 3e-1 / 2024-09-09
     
+    nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 2e-1);  // 5e-2 / 2e-2
+    nh_.param<float>("small_pose_covariance_threshold", smallPoseCovThreshold_, 1e-6);  // 1e-2 / 4e-2 / 2e-2, 2023-09-14
+    
+    // gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
+    // poseCovThreshold_ = smallPoseCovThreshold_; 
+    gpsNoiseThreshold_ = smallGpsNoiseThreshold_; 
+    poseCovThreshold_ = smallPoseCovThreshold_; 
+
+    priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-1, 1e-1, 1e-1, 1e-3, 1e-3, 1e-3).finished()); // rad,rad,rad,m, m, m
+    odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
+
+    // priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-4, 1e-4, 1e-4, 1e-6, 1e-6, 1e-6).finished()); // rad,rad,rad,m, m, m
+    // odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
+
+
     // ROS subscribers
 
     originalOdomSub_ = nh.subscribe(original_odom_topic_, 100, &GtsamOptimizer::originalOdometryCallback, this);
@@ -444,8 +463,8 @@ void GtsamOptimizer::addGPSFactor() {
         float gps_x = thisGPS.pose.pose.position.x;
         float gps_y = thisGPS.pose.pose.position.y;
         
-        float gps_z = thisGPS.pose.pose.position.z;  // (1) If you use z value of gps
-        // float gps_z = odomZInfoCur_;                    // (2) If you use z value of odom
+        // float gps_z = thisGPS.pose.pose.position.z;  // (1) If you use z value of gps
+        float gps_z = odomZInfoCur_;                    // (2) If you use z value of odom
 
 
         // GPS not properly initialized (0,0,0)
@@ -459,7 +478,7 @@ void GtsamOptimizer::addGPSFactor() {
         gtsam::GPSFactor gps_factor(vec_odom_.size()-1, gtsam::Point3(gps_x, gps_y, gps_z), gps_noise);
         gtSAMgraph.add(gps_factor);
         
-        cout << "-----------GPS Factor Added: " <<  noise_x << " " << noise_y << " " << noise_z << " " << endl;
+        cout << "-----------GPS Factor Added: " << gps_x << " " << gps_y << " " << gps_z << " " << noise_x << " " << noise_y << " " << noise_z << " " << endl;
 
         break;
         // }
@@ -479,6 +498,7 @@ void GtsamOptimizer::optimize() {
     }
 
     trajectoryVisualization(vec_odom_);
+    cout << "-----------Trajectory Optimized-----------" << endl;
 
     gtSAMgraph.resize(0);
     initialEstimate.clear();
@@ -513,7 +533,8 @@ void GtsamOptimizer::publishCurrentPose() {
         optimized_odom_[2] = currRotation.yaw();
         optimized_odom_[3] = currTranslation.x();
         optimized_odom_[4] = currTranslation.y();
-        optimized_odom_[5] = currTranslation.z();
+        // optimized_odom_[5] = currTranslation.z();
+        optimized_odom_[5] = 0.0;
 
         vec_odom_.push_back(optimized_odom_);
         lastKey = key;
@@ -586,7 +607,7 @@ void GtsamOptimizer::publishCloudMap() {
     }
     
     // Comment if visualization is not required
-    // mapCloudVisualization(vec_map_cloud_);
+    mapCloudVisualization(vec_map_cloud_);
 }
 
 
@@ -892,8 +913,8 @@ int main(int argc, char** argv) {
         rate.sleep(); // Maintain loop rate
     }
 
-    double avg_latency = total_latency / count;
-    std::cout << "2 Average system latency: " << avg_latency << " " << count << " ms\n";
+    // double avg_latency = total_latency / count;
+    // std::cout << "2 Average system latency: " << avg_latency << " " << count << " ms\n";
 
     return 0;
 }

@@ -1,7 +1,7 @@
 <launch>
     <!-- Play rosbag files -->
     <!-- <include file="$(find robot_setup_tf)/launch/rosbag_play_slam.launch" /> -->
-    <include file="$(find pagslam)/launch/rosbag_play.launch" />
+    <!-- <include file="$(find pagslam)/launch/rosbag_play.launch" /> -->
     
     <!-- Factor graph: GTSAM -->
     <arg name="project" default="gtsam_test"/>
@@ -23,10 +23,10 @@
     <include file="$(find gps)/launch/gps_localization_.launch" />
 
     <!-- P-AgSLAM -->
-    <!-- <include file="$(find pagslam)/launch/baseline.launch" /> -->
+    <include file="$(find pagslam)/launch/baseline.launch" />
 
     <!-- KISS-ICP -->
-    <include file="$(find kiss_icp)/launch/odometry.launch" />
+    <!-- <include file="$(find kiss_icp)/launch/odometry.launch" /> -->
 
     <!-- Mapviz -->
     <!-- <include file="$(find mapviz)/launch/mapviz.launch" /> -->
@@ -35,7 +35,7 @@
     <!-- <arg name="rviz" value="/home/kimkt0408/catkin_ws/src/pagslam/pagslam_baseline.rviz" />
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz)" /> -->
 
-    <arg name="rviz" value="/home/kimkt0408/rviz/gps_localization_.rviz" />
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz)" />
+    <!-- <arg name="rviz" value="/home/kimkt0408/rviz/gps_localization_.rviz" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz)" /> -->
 
 </launch>

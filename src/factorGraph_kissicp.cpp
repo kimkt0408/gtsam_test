@@ -174,12 +174,12 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     nh_.param<string>("map_frame_id", map_frame_id_, "map");
 
     // (2) PARAMETERS
-    nh_.param<bool>("bool_cloud_publisher", boolCloud_, true);
+    nh_.param<bool>("bool_cloud_publisher", boolCloud_, false);
     nh_.param<bool>("debug_mode", debugMode_, true);
     
 
     nh_.param<int>("max_queue_size", maxQueueSize_, 100);
-    nh_.param<float>("new_odom_distance", newOdomDist_, 0.5);
+    nh_.param<float>("new_odom_distance", newOdomDist_, 0.1);       // ACRE: 0.2, SIM: 0.1
     nh_.param<int>("gtsam_interval", gtsam_interval_, 60);
     nh_.param<int>("gtsam_interval_threshold", gtsam_interval_threshold_, 3);
     nh_.param<float>("downsampling_size", downsampling_size_, 0.1);
@@ -209,7 +209,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
 
 
     // // (2) multiple/short
-    nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 2e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
+    nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 8e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
     nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 4e-4);  // 4e-2 / 4e-4 / 2023-09-14
     
     nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 9e-4);  // 5e-2 / 2e-2
