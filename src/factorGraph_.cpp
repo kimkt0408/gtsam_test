@@ -211,7 +211,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     
     // ACRE2024
     // nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 8e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
-    nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 8e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
+    nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 9e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
     nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 4e-1);  // 4e-2 / 4e-4 / 2023-09-14 / 3e-1 / 2024-09-09
     
     nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 2e-1);  // 5e-2 / 2e-2
@@ -219,7 +219,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     
     // gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
     // poseCovThreshold_ = smallPoseCovThreshold_; 
-    gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
+    gpsNoiseThreshold_ = smallGpsNoiseThreshold_; 
     poseCovThreshold_ = largePoseCovThreshold_; 
 
     priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-1, 1e-1, 1e-1, 1e-3, 1e-3, 1e-3).finished()); // rad,rad,rad,m, m, m
