@@ -22,7 +22,7 @@
     <!-- <include file="$(find gps)/launch/gps_localization.launch" /> -->
     <include file="$(find gps)/launch/gps_localization_.launch" />
 
-    <!-- P-AgSLAM -->
+    <!-- P-AgSLAM -->   
     <include file="$(find pagslam)/launch/baseline.launch" />
 
     <!-- KISS-ICP -->

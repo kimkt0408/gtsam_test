@@ -58,7 +58,7 @@ class GtsamOptimizer
         // ROS handles and subscribers/publishers
         ros::NodeHandle nh_;
         ros::Subscriber originalOdomSub_, odomSub_, gpsSub_, vCloudSub_;
-        ros::Publisher posePub_, trajectoryPub_, mapCloudPub_, gpsMapPub_, odomMapPub_;
+        ros::Publisher posePub_, trajectoryPub_, mapCloudPub_, gpsMapPub_, odomMapPub_, mapPointcloud2Pub_;
 
         // GTSAM objects
         ISAM2 isam;
@@ -98,6 +98,9 @@ class GtsamOptimizer
         void printFactors();
         void addCloud();
         bool transformFrame(const string source_frame, const string target_frame, tf2::Transform& tf_sourceToTarget);
+
+        void concatenatePointClouds(const std::vector<CloudT::Ptr>& clouds, CloudT::Ptr& combined_cloud);
+        sensor_msgs::PointCloud2 convertToPointCloud2(const CloudT::Ptr& pcl_cloud);
 
         string original_odom_topic_;
         string odom_topic_;
@@ -167,7 +170,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     nh_.param<bool>("bool_cloud_publisher", boolCloud_, true);
     nh_.param<bool>("debug_mode", debugMode_, true);
     
-    nh_.param<float>("new_odom_distance", newOdomDist_, 0.1);
+    nh_.param<float>("new_odom_distance", newOdomDist_, 0.1);  // 0.1
 
     // nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
     // nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
@@ -240,6 +243,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     posePub_ = nh.advertise<geometry_msgs::PoseStamped>("gtsam/optimized_pose_", 10);
     trajectoryPub_ = nh.advertise<visualization_msgs::MarkerArray>("gtsam/trajectory_", 10);
     mapCloudPub_ = nh.advertise<visualization_msgs::MarkerArray>("gtsam/mapCloud_", 10);
+    mapPointcloud2Pub_ = nh.advertise<sensor_msgs::PointCloud2>("gtsam/mapPointcloud2_", 10);
 
     // ROS publishers (convert rostopics to map frame)
     gpsMapPub_ = nh.advertise<nav_msgs::Odometry>("gtsam/gpsOnMap_", 10);
@@ -580,15 +584,33 @@ void GtsamOptimizer::publishCurrentPose() {
 
 
 void GtsamOptimizer::publishCloudMap() {
-    for (int i = 0; i < vec_odom_.size(); i++){
+    // Define your x_min and x_max values
+    float y_min = -0.5;  // example value
+    float y_max = 0.5;   // example value
+
+    for (int i = 0; i < vec_odom_.size(); i++) {
         auto pose = vec_odom_[i];
         auto v_cloud = vec_cloud_[i];
         
-        if (v_cloud->points.size() == 0){
+        if (v_cloud->points.size() == 0) {
             continue;
         }
 
-        CloudT::Ptr tfm_v_cloud(new CloudT());
+        // Create a filtered point cloud based on x-values
+        CloudT::Ptr filtered_v_cloud(new CloudT());
+
+        // Loop through the points and add only those with x within the range
+        for (auto& point : v_cloud->points) {
+            if (point.y >= y_min && point.y <= y_max) {
+                filtered_v_cloud->points.push_back(point);
+            }
+        }
+
+        if (filtered_v_cloud->points.size() == 0) {
+            continue;  // Skip this cloud if no points match the filter
+        }
+
+        CloudT::Ptr tfm_filtered_v_cloud(new CloudT());
 
         // Create a quaternion directly from roll, pitch, yaw
         tf2::Quaternion tf2_quaternion;
@@ -600,15 +622,62 @@ void GtsamOptimizer::publishCloudMap() {
         // Construct the tf2::Transform object using the constructor
         tf2::Transform tf2_transform(tf2_quaternion, tf2_translation_vector);
 
-        // Use the transform
-        transformMapCloud(tf2_transform, v_cloud, tfm_v_cloud);
+        // Transform the filtered cloud
+        transformMapCloud(tf2_transform, filtered_v_cloud, tfm_filtered_v_cloud);
 
-        vec_map_cloud_.push_back(tfm_v_cloud);
+        vec_map_cloud_.push_back(tfm_filtered_v_cloud);
     }
-    
+
     // Comment if visualization is not required
     mapCloudVisualization(vec_map_cloud_);
+
+    // Combine all point clouds into one
+    CloudT::Ptr combined_map_cloud_(new CloudT);
+    concatenatePointClouds(vec_map_cloud_, combined_map_cloud_);
+
+    // Convert to ROS message
+    sensor_msgs::PointCloud2 output_map_cloud_ = convertToPointCloud2(combined_map_cloud_);
+    mapPointcloud2Pub_.publish(output_map_cloud_);
 }
+
+
+// void GtsamOptimizer::publishCloudMap() {
+//     for (int i = 0; i < vec_odom_.size(); i++){
+//         auto pose = vec_odom_[i];
+//         auto v_cloud = vec_cloud_[i];
+        
+//         if (v_cloud->points.size() == 0){
+//             continue;
+//         }
+
+//         CloudT::Ptr tfm_v_cloud(new CloudT());
+
+//         // Create a quaternion directly from roll, pitch, yaw
+//         tf2::Quaternion tf2_quaternion;
+//         tf2_quaternion.setRPY(pose[0], pose[1], pose[2]);
+
+//         // Create the tf2::Vector3 object directly from translation data
+//         tf2::Vector3 tf2_translation_vector(pose[3], pose[4], pose[5]);
+
+//         // Construct the tf2::Transform object using the constructor
+//         tf2::Transform tf2_transform(tf2_quaternion, tf2_translation_vector);
+
+//         // Use the transform
+//         transformMapCloud(tf2_transform, v_cloud, tfm_v_cloud);
+
+//         vec_map_cloud_.push_back(tfm_v_cloud);
+//     }
+
+//     // Comment if visualization is not required
+//     mapCloudVisualization(vec_map_cloud_);
+    
+//     // Combine all point clouds into one
+//     CloudT::Ptr combined_map_cloud_(new CloudT);
+//     concatenatePointClouds(vec_map_cloud_, combined_map_cloud_);
+//     // Convert to ROS message
+//     sensor_msgs::PointCloud2 output_map_cloud_ = convertToPointCloud2(combined_map_cloud_);
+//     mapPointcloud2Pub_.publish(output_map_cloud_);
+// }
 
 
 gtsam::Pose3 GtsamOptimizer::trans2GtsamPose(std::array<float, 6>& transformIn) {
@@ -886,6 +955,19 @@ bool GtsamOptimizer::transformFrame(const string source_frame, const string targ
 
 //     return 0;
 // }
+
+void GtsamOptimizer::concatenatePointClouds(const std::vector<CloudT::Ptr>& clouds, CloudT::Ptr& combined_cloud) {
+    for (const auto& cloud : clouds) {
+        *combined_cloud += *cloud;  // Concatenate the clouds
+    }
+}
+
+sensor_msgs::PointCloud2 GtsamOptimizer::convertToPointCloud2(const CloudT::Ptr& pcl_cloud) {
+    sensor_msgs::PointCloud2 ros_cloud;
+    pcl::toROSMsg(*pcl_cloud, ros_cloud);  // Convert the PCL cloud to a ROS message
+    ros_cloud.header.frame_id = "map";     // Set the appropriate frame ID
+    return ros_cloud;
+}
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "gtsam_optimizer");
