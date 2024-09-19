@@ -220,10 +220,12 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     nh_.param<float>("large_pose_covariance_threshold", largePoseCovThreshold_, 2e-1);  // 5e-2 / 2e-2
     nh_.param<float>("small_pose_covariance_threshold", smallPoseCovThreshold_, 1e-6);  // 1e-2 / 4e-2 / 2e-2, 2023-09-14
     
-    // gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
-    // poseCovThreshold_ = smallPoseCovThreshold_; 
-    gpsNoiseThreshold_ = smallGpsNoiseThreshold_; 
-    poseCovThreshold_ = largePoseCovThreshold_; 
+    
+    // Default
+    // gpsNoiseThreshold_ = smallGpsNoiseThreshold_; 
+    // poseCovThreshold_ = largePoseCovThreshold_; 
+    gpsNoiseThreshold_ = largeGpsNoiseThreshold_; 
+    poseCovThreshold_ = smallPoseCovThreshold_; 
 
     priorPoseNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-1, 1e-1, 1e-1, 1e-3, 1e-3, 1e-3).finished()); // rad,rad,rad,m, m, m
     odomNoise_  = gtsam::noiseModel::Diagonal::Sigmas((gtsam::Vector(6) << 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2).finished()); // rad,rad,rad,m, m, m
@@ -286,12 +288,23 @@ void GtsamOptimizer::odometryCallback(const nav_msgs::Odometry::ConstPtr& odomMs
 
     // Initial setting for odom_ and prev_optimized_odom_
     if (vec_odom_.size() == 0){
+        
+        if (gpsQueue_.empty()){
+            return;
+        }
+
+        nav_msgs::Odometry thisGPS = gpsQueue_.front();
+
         odom_[0] = roll;
         odom_[1] = pitch;
         odom_[2] = yaw;
-        odom_[3] = odomMsg->pose.pose.position.x;
-        odom_[4] = odomMsg->pose.pose.position.y;
+
+        odom_[3] = thisGPS.pose.pose.position.x;
+        odom_[4] = thisGPS.pose.pose.position.y;
         odom_[5] = odomMsg->pose.pose.position.z;
+        // odom_[3] = odomMsg->pose.pose.position.x;
+        // odom_[4] = odomMsg->pose.pose.position.y;
+        // odom_[5] = odomMsg->pose.pose.position.z;
 
         prev_optimized_odom_ = odom_;
     }
