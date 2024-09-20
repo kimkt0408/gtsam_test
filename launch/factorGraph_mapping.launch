@@ -39,5 +39,5 @@
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz)" /> -->
 
     <!-- map origin saver -->
-     <!-- <node pkg="$(arg project)" type="saveMapOrigin.py" name="saveMapOrigin" output="screen" /> -->
+     <node pkg="$(arg project)" type="saveMapOrigin.py" name="saveMapOrigin" output="screen" />
  </launch>
