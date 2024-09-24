@@ -598,8 +598,8 @@ void GtsamOptimizer::publishCurrentPose() {
 
 void GtsamOptimizer::publishCloudMap() {
     // Define your x_min and x_max values
-    float y_min = -0.8;  // example value (default: -0.5)
-    float y_max = 0.8;   // example value (default: 0.5)
+    float y_min = -0.5;  // example value (default: -0.5)
+    float y_max = 0.5;   // example value (default: 0.5)
 
     for (int i = 0; i < vec_odom_.size(); i++) {
         auto pose = vec_odom_[i];
