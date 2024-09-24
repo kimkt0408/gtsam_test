@@ -272,7 +272,8 @@ void GtsamOptimizer::originalOdometryCallback(const nav_msgs::Odometry::ConstPtr
 }  
 
 
-void GtsamOptimizer::odometryCallback(const nav_msgs::Odometry::ConstPtr& odomMsg) {   
+void GtsamOptimizer::odometryCallback(const nav_msgs::Odometry::ConstPtr& odomMsg) {  
+    cout << "*************" << endl;
     timeLaserInfoCur_ = odomMsg->header.stamp.toSec();
     // odomZInfoCur_ = odomMsg->pose.pose.orientation.z;
     odomZInfoCur_ = odomMsg->pose.pose.position.z;
@@ -368,14 +369,23 @@ void GtsamOptimizer::odometryCallback(const nav_msgs::Odometry::ConstPtr& odomMs
 
     float dist;
 
+    cout << "^^^^" << endl;
+
     if (vec_odom_.size() == 0){
         dist = sqrt(pow(odom_[3],2) + pow(odom_[4],2) + pow(odom_[5],2));            
     }
     else{
-        dist = sqrt(pow(prev_optimized_odom_[3]-vec_odom_.back()[3],2) + pow(prev_optimized_odom_[4]-vec_odom_.back()[4],2) + pow(prev_optimized_odom_[5]-vec_odom_.back()[5],2));   
+        std::array<float, 6> current_odom_ = vec_odom_.back();
+        dist = sqrt(pow(prev_optimized_odom_[3]-current_odom_[3],2) + pow(prev_optimized_odom_[4]-current_odom_[4],2) + pow(prev_optimized_odom_[5]-current_odom_[5],2));   
+        
+        // dist = sqrt(pow(prev_optimized_odom_[3]-vec_odom_.back()[3],2) + pow(prev_optimized_odom_[4]-vec_odom_.back()[4],2) + pow(prev_optimized_odom_[5]-vec_odom_.back()[5],2));   
         // dist = sqrt((odom_[3]-vec_odom_.back()[3])**2 + (odom_[4]-vec_odom_.back()[4])**2 + (odom_[5]-vec_odom_.back()[5])**2);                
+
+        cout << "&&&" << dist << " " << prev_optimized_odom_[3] << " " << prev_optimized_odom_[4] << " " << prev_optimized_odom_[5] << 
+        " " << current_odom_[3] << " " << current_odom_[4] << " " << current_odom_[5] << endl;
     }
 
+    
     if (debugMode_){
         cout << "*******************Odom Proceeding*******************" << dist << endl;
     }
@@ -550,8 +560,8 @@ void GtsamOptimizer::publishCurrentPose() {
         optimized_odom_[2] = currRotation.yaw();
         optimized_odom_[3] = currTranslation.x();
         optimized_odom_[4] = currTranslation.y();
-        // optimized_odom_[5] = currTranslation.z();
-        optimized_odom_[5] = 0.0;
+        optimized_odom_[5] = currTranslation.z();
+        // optimized_odom_[5] = 0.0;
 
         vec_odom_.push_back(optimized_odom_);
         lastKey = key;
