@@ -9,7 +9,8 @@ def save_gps_origin(gps_data):
         'latitude': gps_data.latitude,
         'longitude': gps_data.longitude,
         'altitude': gps_data.altitude,
-        'datum': [gps_data.latitude, gps_data.longitude, gps_data.altitude, 'map', 'base_link']
+        # 'datum': [gps_data.latitude, gps_data.longitude, 0.0, 'map', 'base_link']
+        'datum': [gps_data.latitude, gps_data.longitude, 0.0, 'odom', 'base_link']
     }
     # gps_origin = {
     #     'latitude': gps_data.latitude,
