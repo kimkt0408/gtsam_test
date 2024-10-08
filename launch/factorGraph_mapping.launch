@@ -1,7 +1,7 @@
 <launch>
     <!-- Play rosbag files -->
     <!-- <include file="$(find robot_setup_tf)/launch/rosbag_play_slam.launch" /> -->
-    <!-- <include file="$(find pagslam)/launch/rosbag_play.launch" /> -->
+    <include file="$(find pagslam)/launch/rosbag_play.launch" />
     
     <!-- Factor graph: GTSAM -->
     <arg name="project" default="gtsam_test"/>
@@ -21,7 +21,7 @@
     <!-- GPS -->
     <!-- <include file="$(find gps)/launch/gps_localization.launch" /> -->
     <include file="$(find gps)/launch/gps_localization_.launch" />
-
+ 
     <!-- P-AgSLAM -->   
     <include file="$(find pagslam)/launch/baseline.launch" />
 
@@ -39,5 +39,9 @@
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz)" /> -->
 
     <!-- map origin saver -->
-     <node pkg="$(arg project)" type="saveMapOrigin.py" name="saveMapOrigin" output="screen" />
+    <node pkg="$(arg project)" type="saveMapOrigin.py" name="saveMapOrigin" output="screen" />
+
+    <!-- Raw GPS visaualization -->
+    <!-- Need to edit the parameter of utm in the file. -->
+    <include file="$(find rviz_satellite)/launch/demo_pagslam.launch" />
  </launch>

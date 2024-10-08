@@ -10,6 +10,7 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Twist.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/Header.h>
 
@@ -57,7 +58,7 @@ class GtsamOptimizer
     private:
         // ROS handles and subscribers/publishers
         ros::NodeHandle nh_;
-        ros::Subscriber originalOdomSub_, odomSub_, gpsSub_, vCloudSub_;
+        ros::Subscriber originalOdomSub_, odomSub_, gpsSub_, vCloudSub_, cmdvelSub_;
         ros::Publisher posePub_, trajectoryPub_, mapCloudPub_, gpsMapPub_, odomMapPub_, mapPointcloud2Pub_;
 
         // GTSAM objects
@@ -74,6 +75,7 @@ class GtsamOptimizer
         void odometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
         void vCloudCallback(const sensor_msgs::PointCloud2ConstPtr &vCloudMsg);
         void gpsCallback(const nav_msgs::Odometry::ConstPtr& gpsMsg);
+        void cmdvelCallback(const geometry_msgs::Twist::ConstPtr& cmdvelMsg);
 
         Values getCurrentEstimate();
         
@@ -106,6 +108,7 @@ class GtsamOptimizer
         string odom_topic_;
         string gps_topic_;
         string v_cloud_topic_;
+        string cmd_vel_topic_;
 
         string v_lidar_frame_id_;
         string robot_frame_id_;
@@ -145,6 +148,9 @@ class GtsamOptimizer
         
         double timeLaserInfoCur_;
         double odomZInfoCur_;
+
+        bool boolInitialGps_;
+        bool boolInitialCmdvel_;
         
     public:
         explicit GtsamOptimizer(ros::NodeHandle nh);
@@ -160,17 +166,23 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     nh_.param<string>("odom_topic", odom_topic_, "pagslam/debug/ref_frame_pagslam_pose_");
 
     nh_.param<string>("gps_topic", gps_topic_, "odometry/gps_");
+    // nh_.param<string>("gps_topic", gps_topic_, "odometry/filtered_gps_");
     nh_.param<string>("v_cloud_topic", v_cloud_topic_, "ns2/velodyne_points");
-    
+    nh_.param<string>("cmd_vel_topic", cmd_vel_topic_, "cmd_vel");
+
     nh_.param<string>("v_lidar_frame_id", v_lidar_frame_id_, "velodyne2");
     nh_.param<string>("robot_frame_id", robot_frame_id_, "base_link");
     nh_.param<string>("map_frame_id", map_frame_id_, "map");
 
+    
+
     // (2) PARAMETERS
     nh_.param<bool>("bool_cloud_publisher", boolCloud_, true);
     nh_.param<bool>("debug_mode", debugMode_, true);
+    nh_.param<bool>("bool_initial_GPS_queue", boolInitialGps_, false);
+    nh_.param<bool>("bool_initial_cmdvel", boolInitialCmdvel_, false);
     
-    nh_.param<float>("new_odom_distance", newOdomDist_, 0.1);  // 0.1
+    nh_.param<float>("new_odom_distance", newOdomDist_, 0.2);  // 0.1
 
     // nh_.param<float>("large_gps_noise_threshold", largeGpsNoiseThreshold_, 4e-1);  // 9e-1 / 4e-2 / 9e-2 / 2023-08-22-11-19-45: 1e-1 
     // nh_.param<float>("small_gps_noise_threshold", smallGpsNoiseThreshold_, 9e-2);  // 4e-2 / 4e-4 / 2023-09-14
@@ -240,6 +252,7 @@ GtsamOptimizer::GtsamOptimizer(ros::NodeHandle nh) : nh_(nh) {
     odomSub_ = nh.subscribe(odom_topic_, 100, &GtsamOptimizer::odometryCallback, this);
     gpsSub_ = nh.subscribe(gps_topic_, 100, &GtsamOptimizer::gpsCallback, this);
     vCloudSub_ = nh.subscribe(v_cloud_topic_, 100, &GtsamOptimizer::vCloudCallback, this);
+    cmdvelSub_ = nh.subscribe(cmd_vel_topic_, 100, &GtsamOptimizer::cmdvelCallback, this);
 
     // ROS publishers
     posePub_ = nh.advertise<geometry_msgs::PoseStamped>("gtsam/optimized_pose_", 10);
@@ -273,7 +286,6 @@ void GtsamOptimizer::originalOdometryCallback(const nav_msgs::Odometry::ConstPtr
 
 
 void GtsamOptimizer::odometryCallback(const nav_msgs::Odometry::ConstPtr& odomMsg) {  
-    cout << "*************" << endl;
     timeLaserInfoCur_ = odomMsg->header.stamp.toSec();
     // odomZInfoCur_ = odomMsg->pose.pose.orientation.z;
     odomZInfoCur_ = odomMsg->pose.pose.position.z;
@@ -369,8 +381,6 @@ void GtsamOptimizer::odometryCallback(const nav_msgs::Odometry::ConstPtr& odomMs
 
     float dist;
 
-    cout << "^^^^" << endl;
-
     if (vec_odom_.size() == 0){
         dist = sqrt(pow(odom_[3],2) + pow(odom_[4],2) + pow(odom_[5],2));            
     }
@@ -413,10 +423,18 @@ void GtsamOptimizer::vCloudCallback(const sensor_msgs::PointCloud2ConstPtr &vClo
 
 }
 
+void GtsamOptimizer::cmdvelCallback(const geometry_msgs::Twist::ConstPtr& cmdvelMsg) {
+    if ((cmdvelMsg->linear.x != 0.0) & (!boolInitialCmdvel_)){
+        boolInitialCmdvel_ = true;
+        boolInitialGps_ = true;
+    }
+}  
 
 void GtsamOptimizer::gpsCallback(const nav_msgs::Odometry::ConstPtr& gpsMsg){
-    gpsQueue_.push_back(*gpsMsg);
-    gpsMapFrameVisualization(*gpsMsg);
+    if (boolInitialGps_){
+        gpsQueue_.push_back(*gpsMsg);
+        gpsMapFrameVisualization(*gpsMsg);
+    }
 }
 
 

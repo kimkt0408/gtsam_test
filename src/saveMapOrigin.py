@@ -11,6 +11,12 @@ def save_gps_origin(gps_data):
         'altitude': gps_data.altitude,
         'datum': [gps_data.latitude, gps_data.longitude, gps_data.altitude, 'map', 'base_link']
     }
+    # gps_origin = {
+    #     'latitude': gps_data.latitude,
+    #     'longitude': gps_data.longitude,
+    #     'altitude': gps_data.altitude,
+    #     'datum': [gps_data.latitude, gps_data.longitude, gps_data.altitude, 'odom', 'base_link']
+    # }
     
     # Save the data to a YAML file
     with open('/home/kimkt0408/catkin_ws/src/gtsam_test/gps_data/map_origin_gps.yaml', 'w') as file:
